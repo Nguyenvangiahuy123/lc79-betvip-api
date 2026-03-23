@@ -1332,7 +1332,7 @@ def ping_all_apis():
                 print(f"[{datetime.now()}] Ping {game_id} thành công")
             except Exception as e:
                 print(f"[{datetime.now()}] Lỗi ping {game_id}: {e}")
-        time.sleep(60)
+        time.sleep(3)
 
 threading.Thread(target=ping_all_apis, daemon=True).start()
 
