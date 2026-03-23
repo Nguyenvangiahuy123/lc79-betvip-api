@@ -1293,44 +1293,25 @@ def predict_game(game_id):
     pred, conf, pattern, details = dec.analyze()
     
     # Chuẩn bị response
-    response = {
-        "status": "success",
-        "timestamp": datetime.now().isoformat(),
-        "game": config['name'],
-        "game_key": config['game_key'],
-        "user_id": USER_ID,
-        "algorithm": ALGO_NAME,
-        "current_session": {
-            "phien": current.get("id"),
-            "ket_qua": current.get("resultTruyenThong"),
-            "tong": current.get("point"),
-            "xuc_xac": current.get("dices", [0, 0, 0])
-        },
-        "prediction": {
-            "next_session": current.get("id", 0) + 1,
-            "du_doan": "TAI" if pred == "T" else "XIU",
-            "do_tin_cay": f"{conf}%",
-            "cau_dang_chay": pattern,
-            "break_signals": details.get('break_signals', 0)
-        },
-        "statistics": {
-            "history_length": len(history),
-            "recent_trend": f"T{history[-10:].count('T')}:X{history[-10:].count('X')}" if len(history) >= 10 else "N/A",
-            "total_balance": f"T{history.count('T')}:X{history.count('X')}"
-        }
-    }
-    
-    # Thêm chi tiết nếu được yêu cầu
-    if show_details:
-        response["details"] = {
-            "pattern_detectors": {k: v for k, v in details.items() if not k in ['break_signals', 'should_break'] and not any(algo in k for algo in ['Markov', 'RSI', 'MACD', 'Bollinger'])},
-            "algorithms": {k: v for k, v in details.items() if any(algo in k for algo in ['Markov', 'RSI', 'MACD', 'Bollinger', 'Stochastic', 'Williams', 'CCI', 'ADX', 'MeanReversion', 'PatternMatch', 'LinearReg', 'KNN', 'NaiveBayes', 'DecisionTree', 'Ensemble', 'RL'])},
-            "history_string": history[-30:] if len(history) > 30 else history,
-            "totals_history": totals[-20:] if len(totals) > 20 else totals
-        }
-    
-    return jsonify(response)
+    tai_percent = conf if pred == 'T' else 100 - conf
+xiu_percent = 100 - tai_percent
 
+custom_response = {
+    "phien": current.get("id"),
+    "xuc_xac": current.get("dices", [0, 0, 0]),
+    "tong": current.get("point"),
+    "ket_qua": "Tài" if current.get("resultTruyenThong", "").upper() == "TAI" else "Xỉu",
+    "phien_hien_tai": current.get("id", 0) + 1,
+    "du_doan": "Tài" if pred == "T" else "Xỉu",
+    "do_tin_cay": f"{tai_percent}%-{xiu_percent}%",
+    "id": USER_ID  # 👈 ID cố định
+}
+
+return app.response_class(
+    response=json.dumps(custom_response, ensure_ascii=False, separators=(',', ':')),
+    status=200,
+    mimetype='application/json'
+)
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Kiểm tra sức khỏe API"""
